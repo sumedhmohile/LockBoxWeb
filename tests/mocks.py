@@ -23,3 +23,18 @@ class FirebaseDBMock:
 
     def reference(self, db):
         return self.reference
+
+
+class FirebaseMessagingMock:
+    def __init__(self):
+        super().__init__()
+
+    def Message(self, data, token):
+        return self
+
+    def send(self, message):
+        return "DUMMY RESPONSE"
+
+    def __str__(self):
+        return "DUMMY"
+

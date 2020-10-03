@@ -2,7 +2,7 @@ import unittest
 from lockboxweb import functions
 from datetime import datetime, timedelta
 from unittest import mock
-from tests.mocks import FirebaseDBMock, FirebaseDBReferenceMock
+from tests.mocks import FirebaseDBMock, FirebaseDBReferenceMock, FirebaseMessagingMock
 
 
 def getFireBaseDBMockForWarnUpdate(*args, **kwargs):
@@ -53,6 +53,13 @@ def getFireBaseDBMockForUnlockUpdate(*args, **kwargs):
 
     return referenceMock
 
+
+def getFireBaseMessagingMock(*args, **kwargs):
+    return FirebaseMessagingMock()
+
+def getFireBaseMessagingMockSendResponse(*args, **kwargs):
+    return FirebaseMessagingMock().send("test")
+
 class Tests(unittest.TestCase):
     def setUp(self):
         return super().setUp()
@@ -90,9 +97,18 @@ class Tests(unittest.TestCase):
 
 
     @mock.patch('firebase_admin.db.reference', side_effect=getFireBaseDBMockForUnlockUpdate)
-    def test_update_boxes_to_unlock(self, mock):
+    @mock.patch('firebase_admin.messaging.Message', side_effect=getFireBaseMessagingMock)
+    @mock.patch('firebase_admin.messaging.send', side_effect=getFireBaseMessagingMockSendResponse)
+    def test_update_boxes_to_unlock(self, dbMock, messageMock, sendMock):
         result = functions.update_boxes_to_unlock()
         self.assertEqual(result['testOwner'], ['Test Box 1'])
+
+
+    @mock.patch('firebase_admin.messaging.Message', side_effect=getFireBaseMessagingMock)
+    @mock.patch('firebase_admin.messaging.send', side_effect=getFireBaseMessagingMockSendResponse)
+    def test_send_message_to_token(self, messageMock, sendMock):
+        result = functions.send_message_to_token("test_id", "test_command", "test_message", "test_token")
+        self.assertEqual(result, "DUMMY RESPONSE")
 
 if __name__ == "__main__":
     unittest.main()
