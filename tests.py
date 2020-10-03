@@ -28,6 +28,31 @@ def getFireBaseDBMockForWarnUpdate(*args, **kwargs):
 
     return referenceMock
 
+def getFireBaseDBMockForUnlockUpdate(*args, **kwargs):
+    test_box_data = {}
+
+    test_box_data['dummyId'] = {}
+    test_box_data['dummyId']['dummyBox1'] = {}
+    test_box_data['dummyId']['dummyBox1']['lastCheckInDate'] = {'time': (datetime.now() + timedelta(days=-3)).timestamp()}
+    test_box_data['dummyId']['dummyBox1']['checkInFrequency'] = 'Daily'
+    test_box_data['dummyId']['dummyBox1']['ownerId'] = 'testOwner'
+    test_box_data['dummyId']['dummyBox1']['lockStatus'] = 'Warning'
+    test_box_data['dummyId']['dummyBox1']['boxId'] = 'testBoxId1'
+    test_box_data['dummyId']['dummyBox1']['name'] = 'Test Box 1'
+
+    test_box_data['dummyId']['dummyBox2'] = {}
+    test_box_data['dummyId']['dummyBox2']['lastCheckInDate'] = {'time': (datetime.now() + timedelta(days=1)).timestamp()}
+    test_box_data['dummyId']['dummyBox2']['checkInFrequency'] = 'Daily'
+    test_box_data['dummyId']['dummyBox2']['ownerId'] = 'testOwner'
+    test_box_data['dummyId']['dummyBox2']['lockStatus'] = 'Locked'
+    test_box_data['dummyId']['dummyBox2']['boxId'] = 'testBoxId2'
+    test_box_data['dummyId']['dummyBox2']['name'] = 'Test Box 2'
+
+    referenceMock = FirebaseDBReferenceMock('test')
+    referenceMock.setData(test_box_data)
+
+    return referenceMock
+
 class Tests(unittest.TestCase):
     def setUp(self):
         return super().setUp()
@@ -59,11 +84,15 @@ class Tests(unittest.TestCase):
 
 
     @mock.patch('firebase_admin.db.reference', side_effect=getFireBaseDBMockForWarnUpdate)
-    def test_mock(self, mock):
+    def test_update_boxes_to_warn(self, mock):
         result = functions.update_boxes_to_warn()
-
-
         self.assertEqual(result['testOwner'], ['testBoxId1'])
+
+
+    @mock.patch('firebase_admin.db.reference', side_effect=getFireBaseDBMockForUnlockUpdate)
+    def test_update_boxes_to_unlock(self, mock):
+        result = functions.update_boxes_to_unlock()
+        self.assertEqual(result['testOwner'], ['Test Box 1'])
 
 if __name__ == "__main__":
     unittest.main()
