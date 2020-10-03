@@ -1,30 +1,11 @@
 import os
 from firebase_admin import credentials
 import firebase_admin
-from firebase_admin import db, messaging
+from firebase_admin import db
 import datetime
 from dateutil import relativedelta, tz
 from dateutil import tz
 
-
-def send_message_to_token(notification_id, command, message, token):
-    registration_token = token
-
-    message = messaging.Message(
-        data={
-            "message":message,
-            "notification_type":command,
-            "notification_id":notification_id
-        },
-        token=registration_token,
-    )
-
-    response = messaging.send(message)
-
-    print('Successfully sent message:' + str(response) + "to token " + token)
-
-    return response
-    
 
 def get_start_of_plus_day(original_date, plus_days):
     if original_date is None or plus_days is None: return None
@@ -65,14 +46,6 @@ def update_boxes_to_warn():
 
     print("Updated to warn: " + str(boxes_to_warn))
 
-    user_reference = db.reference("users")
-
-    if user_reference.get():
-        for user_id, user_data in user_reference.get().items():
-            if user_id in boxes_to_warn.keys():
-                message = "You have " + str(len(boxes_to_warn[user_id])) + " boxes pending"
-                send_message_to_token("1", "NOTIFICATION_WARN", message, user_data['fcmToken'])
-
     return boxes_to_warn
 
 
@@ -102,18 +75,6 @@ def update_boxes_to_unlock():
                     reference.child(user_id).child(box_id).update({"lockStatus": "Unlocked"})
 
     print("Updated to unlock: " + str(boxes_to_unlock))
-
-    user_reference = db.reference("users")
-
-    if user_reference.get():
-        for user_id, user_data in user_reference.get().items():
-            if user_id in boxes_to_unlock.keys():
-                message = "Box: " + ''.join(boxes_to_unlock[user_id]) + " has been unlocked."
-                if len(boxes_to_unlock[user_id]) > 1:
-                    box_list = boxes_to_unlock[user_id]
-                    message = "Boxes " + ', '.join(box_list[0: len(box_list) - 1]) + " and " + box_list[len(box_list) - 1] + " have been unlocked."
-                send_message_to_token("2", "NOTIFICATION_UNLOCKED", message, user_data['fcmToken'])
-
 
     return boxes_to_unlock
 
