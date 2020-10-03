@@ -49,6 +49,35 @@ def update_boxes_to_warn():
     return boxes_to_warn
 
 
+def update_boxes_to_unlock():
+    reference = db.reference('boxes')
+    boxes = []
+    boxes_to_unlock = {}
+
+    if reference.get():
+        for user_id, user_boxes in reference.get().items():
+            for box_id, box_data in user_boxes.items():
+                last_checkin = int(box_data['lastCheckInDate']['time'])
+                lock_status = box_data['lockStatus']
+                date = datetime.datetime.fromtimestamp(last_checkin // 1000)
+                if box_data['checkInFrequency'] == "Daily":
+                    checkin_deadline = get_start_of_plus_day(date, 2)
+                elif box_data['checkInFrequency'] == "Weekly":
+                    checkin_deadline = get_start_of_plus_week(date, 2)
+                else:
+                    checkin_deadline = get_start_of_plus_month(date, 2)
+
+                if checkin_deadline.timestamp() < datetime.datetime.now().timestamp() and lock_status == 'Warning':
+                    boxes.append(box_data['boxId'])
+                    if box_data['ownerId'] not in boxes_to_unlock:
+                        boxes_to_unlock[box_data['ownerId']] = []
+                    boxes_to_unlock[box_data['ownerId']].append(box_data['name'])
+                    reference.child(user_id).child(box_id).update({"lockStatus": "Unlocked"})
+
+    print("Updated to unlock: " + str(boxes_to_unlock))
+
+    return boxes_to_unlock
+
 cred = credentials.Certificate(os.environ['FIREBASE_CREDENTIALS_PATH'])
 firebase_admin.initialize_app(cred, {
     'databaseURL': os.environ['FIREBASE_DATABASE_URL']
